@@ -1,0 +1,27 @@
+[project]
+name = "aiusage"
+version = "0.1.0"
+description = "Cross-platform menu bar usage tracker for Claude Code, Codex and other AI coding subscriptions (Linux, macOS, Windows)"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+keywords = [
+  "claude", "claude-code", "codex", "openai", "anthropic",
+  "ai usage tracker", "subscription usage", "menu bar app",
+  "cross platform", "linux", "macos", "windows", "cli tool"
+]
+dependencies = [
+  "pystray>=0.19.5",
+  "Pillow>=10.0.0",
+  "pyobjc-framework-Cocoa; sys_platform == 'darwin'",
+]
+
+[project.scripts]
+aiusage = "aiusage.cli:main"
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]

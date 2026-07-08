@@ -1,0 +1,109 @@
+# aiusage
+
+**Track your Claude Code, Codex, and other AI coding subscription usage — from the terminal, a local JSON API, or your system tray. Works on Linux, macOS, and Windows.**
+
+Ever burned through your weekly Claude limit without knowing it was close? `aiusage` reads the same login you already have from Claude Code and shows your session and weekly usage percentages, plus a local spend estimate (today / yesterday / last 30 days) computed entirely from logs already on your machine. No dashboard login, no extra account, no telemetry.
+
+```
+$ aiusage status
+{
+  "providerId": "claude",
+  "displayName": "Claude",
+  "lines": [
+    { "type": "progress", "label": "Session", "used": 3.0, "limit": 100.0 },
+    { "type": "progress", "label": "Weekly",  "used": 97.0, "limit": 100.0 },
+    { "type": "text", "label": "Today", "value": "$4.48 · 8.4M tokens" }
+  ]
+}
+```
+
+## Features
+
+- **Live Claude usage** — session (5h) and weekly (7d) limits, read via the OAuth login Claude Code already stores locally.
+- **Local spend estimate** — Today / Yesterday / Last 30 Days, computed by scanning your own `~/.claude/projects` session logs. Nothing is uploaded anywhere.
+- **System tray icon** — a small ring showing session usage %, color-coded (blue → amber → red), on Linux, macOS, and Windows.
+- **Local JSON API** — `GET http://127.0.0.1:8737/v1/usage`, so other local tools/scripts can read your usage numbers. Loopback-only.
+- **Zero-config** — if you're already signed in via `claude`, it just works.
+
+## Install
+
+Requires Python 3.9+.
+
+```bash
+pip install aiusage
+```
+
+Or from source:
+
+```bash
+git clone https://github.com/ahsanhabibakik/aiusage.git
+cd aiusage
+pip install -e .
+```
+
+### Linux tray icon note
+
+The tray icon uses [pystray](https://github.com/moses-palmer/pystray), which on Linux needs a system tray implementation (most desktop environments ship one) plus `python3-gi` / `libayatana-appindicator3` from your distro's package manager. If your desktop has no tray support, use `aiusage serve` + the local dashboard instead — no system dependency needed.
+
+## Usage
+
+```bash
+aiusage status          # print current usage as JSON and exit
+aiusage serve            # run the local HTTP API + web dashboard (no tray icon)
+aiusage tray             # run the system tray icon + local HTTP API (default experience)
+```
+
+Open `http://127.0.0.1:8737` in a browser for a small live dashboard while `serve` or `tray` is running.
+
+## Local HTTP API
+
+```
+GET http://127.0.0.1:8737/v1/usage
+GET http://127.0.0.1:8737/v1/usage/claude
+```
+
+Returns a normalized snapshot per provider:
+
+```jsonc
+{
+  "providerId": "claude",
+  "displayName": "Claude",
+  "plan": null,
+  "lines": [
+    { "type": "progress", "label": "Session", "used": 3.0, "limit": 100.0, "format": {"kind": "percent"}, "resets_at": "..." },
+    { "type": "text", "label": "Today", "value": "$4.48 · 8.4M tokens" }
+  ],
+  "fetchedAt": "2026-07-08T19:17:31Z"
+}
+```
+
+The server listens on `127.0.0.1` only — never reachable from other machines on your network.
+
+## How credentials are read
+
+`aiusage` never asks you to paste a token. It checks, in order:
+
+1. `~/.claude/.credentials.json` (or `$CLAUDE_CONFIG_DIR/.credentials.json`) — the file Claude Code itself writes after `claude` login.
+2. `CLAUDE_CODE_OAUTH_TOKEN` environment variable, as a fallback.
+
+If neither is present, the Session/Weekly lines report "Not logged in" — run `claude` and sign in once.
+
+## Privacy
+
+- Local spend tiles are computed **entirely on your machine** from your own Claude Code session logs — no external calls.
+- The only network call is the same usage-check request Claude Code's own client makes to `api.anthropic.com`.
+- The local HTTP API only ever serves usage numbers, never tokens or credentials, and only listens on loopback.
+
+## Roadmap
+
+- Codex / ChatGPT subscription usage (local session rollout parsing is the hard part — PRs welcome)
+- Cursor, OpenRouter, Z.ai providers
+- Packaged binaries (no Python required) for macOS/Windows
+
+## Contributing
+
+Issues and PRs welcome — especially new providers. See [Roadmap](#roadmap) for what's missing. Keep new providers read-only against local credentials; no telemetry, no new accounts required.
+
+## License
+
+MIT — see [LICENSE](LICENSE).
