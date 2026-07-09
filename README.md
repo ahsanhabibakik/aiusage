@@ -29,17 +29,35 @@ $ aiusage status
 
 Requires Python 3.9+.
 
+**One-line installer** (Linux/macOS — creates an isolated venv, no system Python pollution):
+
 ```bash
-pip install aiusage
+curl -fsSL https://raw.githubusercontent.com/ahsanhabibakik/aiusage/main/scripts/install.sh | bash
 ```
 
-Or from source:
+**pip:**
+
+```bash
+pip install aiusage-tracker
+```
+
+**Homebrew** (macOS/Linux):
+
+```bash
+brew install ahsanhabibakik/tap/aiusage-tracker
+```
+
+**From source:**
 
 ```bash
 git clone https://github.com/ahsanhabibakik/aiusage.git
 cd aiusage
 pip install -e .
 ```
+
+**Arch Linux:** a `packaging/PKGBUILD` is included in this repo (not yet published to the AUR) — `makepkg -si` from the `packaging/` directory.
+
+All methods install the same `aiusage` command.
 
 ### Linux tray icon note
 

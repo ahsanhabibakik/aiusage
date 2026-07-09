@@ -1,5 +1,5 @@
 [project]
-name = "aiusage"
+name = "aiusage-tracker"
 version = "0.1.0"
 description = "Cross-platform menu bar usage tracker for Claude Code, Codex and other AI coding subscriptions (Linux, macOS, Windows)"
 readme = "README.md"
@@ -10,6 +10,7 @@ keywords = [
   "ai usage tracker", "subscription usage", "menu bar app",
   "cross platform", "linux", "macos", "windows", "cli tool"
 ]
+urls = { Homepage = "https://github.com/ahsanhabibakik/aiusage", Repository = "https://github.com/ahsanhabibakik/aiusage" }
 dependencies = [
   "pystray>=0.19.5",
   "Pillow>=10.0.0",
