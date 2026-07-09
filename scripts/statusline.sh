@@ -16,6 +16,7 @@ fi
 
 python3 -c "
 import json, sys
+from datetime import datetime, timezone
 
 SESSION_HUES = [(100,200,255), (255,190,90), (255,110,110)]
 WEEKLY_HUES  = [(190,150,255), (255,150,80), (255,90,130)]
@@ -42,9 +43,30 @@ def bar(pct, hues):
     c = fg(color(pct, hues))
     return f\"{c}{'█' * filled}{DIM}{'░' * (BAR_WIDTH - filled)}{RESET}\"
 
-def metric(label, pct, hues):
+def duration(resets_at):
+    if not resets_at:
+        return None
+    try:
+        target = datetime.fromisoformat(resets_at.replace('Z', '+00:00'))
+    except (ValueError, AttributeError):
+        return None
+    seconds = (target - datetime.now(timezone.utc)).total_seconds()
+    if seconds <= 0:
+        return 'soon'
+    mins = round(seconds / 60)
+    if mins < 60:
+        return f'{mins}m'
+    hrs, mins = divmod(mins, 60)
+    if hrs < 24:
+        return f'{hrs}h {mins}m'
+    days, hrs = divmod(hrs, 24)
+    return f'{days}d {hrs}h'
+
+def metric(label, pct, hues, resets_at):
     c = fg(color(pct, hues))
-    return f'{c}{label} {bar(pct, hues)} {round(pct)}%{RESET}'
+    d = duration(resets_at)
+    reset_text = f'{DIM} ({d}){RESET}' if d else ''
+    return f'{c}{label} {bar(pct, hues)} {round(pct)}%{RESET}{reset_text}'
 
 try:
     d = json.loads(sys.argv[1])
@@ -53,11 +75,11 @@ try:
 
     s = lines.get('Session')
     if s and s.get('type') == 'progress':
-        parts.append(metric('5h', s.get('used', 0), SESSION_HUES))
+        parts.append(metric('5h', s.get('used', 0), SESSION_HUES, s.get('resets_at')))
 
     w = lines.get('Weekly')
     if w and w.get('type') == 'progress':
-        parts.append(metric('7d', w.get('used', 0), WEEKLY_HUES))
+        parts.append(metric('7d', w.get('used', 0), WEEKLY_HUES, w.get('resets_at')))
 
     today = lines.get('Today')
     if today and today.get('type') == 'text' and today.get('value') and today['value'] != 'No data':

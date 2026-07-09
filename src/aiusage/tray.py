@@ -7,6 +7,7 @@ Two icons run side by side: one for the 5-hour session window, one for the
 import threading
 import time
 import webbrowser
+from datetime import datetime, timezone
 
 from PIL import Image, ImageDraw, ImageFont
 
@@ -66,34 +67,61 @@ def _make_badge(percent, shape="circle"):
     return img
 
 
-def _fetch_percents():
+def _format_duration(resets_at):
+    if not resets_at:
+        return None
+    try:
+        target = datetime.fromisoformat(resets_at.replace("Z", "+00:00"))
+    except (ValueError, AttributeError):
+        return None
+    seconds = (target - datetime.now(timezone.utc)).total_seconds()
+    if seconds <= 0:
+        return "soon"
+    mins = round(seconds / 60)
+    if mins < 60:
+        return f"{mins}m"
+    hrs, mins = divmod(mins, 60)
+    if hrs < 24:
+        return f"{hrs}h {mins}m"
+    days, hrs = divmod(hrs, 24)
+    return f"{days}d {hrs}h"
+
+
+def _fetch_metrics():
     """One live API call, both metrics -- never fetch the same snapshot twice."""
-    percents = {"Session": None, "Weekly": None}
+    metrics = {"Session": (None, None), "Weekly": (None, None)}
     try:
         snap = claude_provider.fetch_snapshot()
         for line in snap.lines:
-            if line.type == "progress" and line.label in percents:
-                percents[line.label] = round(line.used or 0)
+            if line.type == "progress" and line.label in metrics:
+                metrics[line.label] = (round(line.used or 0), line.resets_at)
     except Exception:
         pass
-    return percents
+    return metrics
 
 
 def _open_dashboard(icon, item):
     webbrowser.open(f"http://127.0.0.1:{DEFAULT_PORT}")
 
 
+def _tooltip(label, pct, resets_at):
+    pct_text = f"{pct}%" if pct is not None else "?"
+    duration = _format_duration(resets_at)
+    reset_text = f" (resets in {duration})" if duration else ""
+    return f"aiusage - Claude {label} {pct_text}{reset_text}"
+
+
 def run_tray():
     import pystray
 
-    percents = _fetch_percents()
+    metrics = _fetch_metrics()
 
     def make(label, shape):
-        pct = percents[label]
+        pct, resets_at = metrics[label]
         icon = pystray.Icon(
             f"aiusage-{label.lower()}",
             _make_badge(pct, shape),
-            f"aiusage - Claude {label} {pct if pct is not None else '?'}%",
+            _tooltip(label, pct, resets_at),
         )
         return icon
 
@@ -116,11 +144,11 @@ def run_tray():
     def _loop():
         while True:
             time.sleep(REFRESH_SECONDS)
-            percents = _fetch_percents()
+            metrics = _fetch_metrics()
             for lbl, shape, icon in (("Session", "circle", session_icon), ("Weekly", "square", weekly_icon)):
-                pct = percents[lbl]
+                pct, resets_at = metrics[lbl]
                 icon.icon = _make_badge(pct, shape)
-                icon.title = f"aiusage - Claude {lbl} {pct if pct is not None else '?'}%"
+                icon.title = _tooltip(lbl, pct, resets_at)
 
     threading.Thread(target=_loop, daemon=True).start()
     weekly_icon.run_detached()
