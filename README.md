@@ -43,7 +43,27 @@ pip install -e .
 
 ### Linux tray icon note
 
-The tray icon uses [pystray](https://github.com/moses-palmer/pystray), which on Linux needs a system tray implementation (most desktop environments ship one) plus `python3-gi` / `libayatana-appindicator3` from your distro's package manager. If your desktop has no tray support, use `aiusage serve` + the local dashboard instead — no system dependency needed.
+Modern desktops (Plasma 6, GNOME, etc.) only show tray icons that speak the **StatusNotifierItem/AppIndicator** protocol — not the older XEmbed one. `pystray` supports both, but picks XEmbed silently if it can't import `gi`/`AppIndicator3`, and an icon made that way will run with no error yet never appear in the panel.
+
+Install the system packages first:
+
+```bash
+# Arch
+sudo pacman -S python-gobject libappindicator
+# Debian/Ubuntu
+sudo apt install python3-gi gir1.2-appindicator3-0.1
+```
+
+Then create your virtualenv with `--system-site-packages` so it can see them:
+
+```bash
+python3 -m venv --system-site-packages .venv
+.venv/bin/pip install -e .
+.venv/bin/python3 -c "import pystray; print(pystray.Icon.__module__)"
+# should print pystray._appindicator, not pystray._xorg
+```
+
+If your desktop has no tray support at all, use `aiusage serve` + the local dashboard instead — no system dependency needed.
 
 ## Usage
 
