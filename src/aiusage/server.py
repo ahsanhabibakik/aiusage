@@ -15,7 +15,9 @@ PROVIDERS = {
 _cache_lock = threading.Lock()
 _cache = {}  # providerId -> snapshot dict
 _cache_time = {}
-CACHE_TTL_SECONDS = 60
+# Matches tray.py's poll interval and OpenUsage's own default -- keeps the
+# request rate against api.anthropic.com's usage endpoint conservative.
+CACHE_TTL_SECONDS = 300
 
 
 def _get_snapshot(provider_id: str):

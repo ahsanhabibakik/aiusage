@@ -34,21 +34,28 @@ def _load_token() -> Optional[str]:
     return os.environ.get("CLAUDE_CODE_OAUTH_TOKEN")
 
 
-def _fetch_live_usage() -> Optional[dict]:
+def _fetch_live_usage():
+    """Returns (data, error_code). data is None on any failure; error_code
+    distinguishes *why* so callers don't misreport a rate limit as a
+    logged-out state."""
     token = _load_token()
     if not token:
-        return None
+        return None, "not_logged_in"
     req = urllib.request.Request(
         USAGE_URL,
         headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
     )
     try:
         with urllib.request.urlopen(req, timeout=10) as resp:
-            return json.loads(resp.read().decode())
-    except urllib.error.HTTPError:
-        return None
+            return json.loads(resp.read().decode()), None
+    except urllib.error.HTTPError as e:
+        if e.code == 429:
+            return None, "rate_limited"
+        if e.code in (401, 403):
+            return None, "not_logged_in"
+        return None, "request_failed"
     except Exception:
-        return None
+        return None, "request_failed"
 
 
 def _iter_assistant_messages():
@@ -130,10 +137,9 @@ def _fmt_cost_tokens(cost: float, tokens: int) -> str:
 
 def fetch_snapshot() -> ProviderSnapshot:
     now = datetime.now(timezone.utc).isoformat()
-    live = _fetch_live_usage()
+    live, error = _fetch_live_usage()
     lines = []
     plan = None
-    error = None
 
     if live:
         five_hour = live.get("five_hour") or {}
@@ -167,8 +173,12 @@ def fetch_snapshot() -> ProviderSnapshot:
                 format={"kind": "percent"},
             ))
     else:
-        error = "not_logged_in"
-        lines.append(MetricLine(type="text", label="Session", value="Not logged in — run `claude` and sign in"))
+        messages = {
+            "not_logged_in": "Not logged in — run `claude` and sign in",
+            "rate_limited": "Rate limited by Anthropic — will retry shortly",
+            "request_failed": "Couldn't reach api.anthropic.com — check your connection",
+        }
+        lines.append(MetricLine(type="text", label="Session", value=messages.get(error, "Unavailable")))
 
     tiles = _local_spend_tiles()
     for label, key in (("Today", "today"), ("Yesterday", "yesterday"), ("Last 30 Days", "last30")):
