@@ -135,9 +135,23 @@ def _fmt_cost_tokens(cost: float, tokens: int) -> str:
     return f"${cost:.2f} · {tok_str}"
 
 
+_last_good_live = None
+_last_good_at = None
+
+
 def fetch_snapshot() -> ProviderSnapshot:
+    global _last_good_live, _last_good_at
     now = datetime.now(timezone.utc).isoformat()
     live, error = _fetch_live_usage()
+    stale = False
+
+    if live:
+        _last_good_live = live
+        _last_good_at = now
+    elif _last_good_live is not None:
+        live = _last_good_live
+        stale = True
+
     lines = []
     plan = None
 
@@ -171,6 +185,17 @@ def fetch_snapshot() -> ProviderSnapshot:
                 type="progress", label="Extra Usage",
                 used=extra.get("utilization", 0.0), limit=100.0,
                 format={"kind": "percent"},
+            ))
+        if stale:
+            age_min = None
+            try:
+                age_min = round((datetime.now(timezone.utc) - datetime.fromisoformat(_last_good_at)).total_seconds() / 60)
+            except Exception:
+                pass
+            age_text = f"{age_min} min ago" if age_min is not None else "earlier"
+            lines.append(MetricLine(
+                type="text", label="Live data",
+                value=f"Last refreshed {age_text} ({error}) — showing last known values",
             ))
     else:
         messages = {
