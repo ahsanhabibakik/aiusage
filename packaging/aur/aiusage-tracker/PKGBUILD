@@ -1,0 +1,27 @@
+# Maintainer: Ahsan Habib Akik <syedmirahsanhabib@gmail.com>
+# Not yet submitted to the AUR (no AUR account set up yet).
+# Depends on the companion python-pystray PKGBUILD in ../python-pystray --
+# pystray has no AUR package of its own.
+pkgname=aiusage-tracker
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="Cross-platform menu bar usage tracker for Claude Code, Codex and other AI coding subscriptions"
+arch=('any')
+url="https://github.com/ahsanhabibakik/aiusage"
+license=('MIT')
+depends=('python' 'python-pillow' 'python-six' 'python-xlib' 'python-pystray')
+makedepends=('python-build' 'python-installer' 'python-wheel' 'python-setuptools')
+optdepends=('libappindicator: tray icon support in modern desktop panels')
+provides=('aiusage')
+source=("https://github.com/ahsanhabibakik/aiusage/releases/download/v${pkgver}/aiusage_tracker-${pkgver}.tar.gz")
+sha256sums=('3820c4a8f68c7a16e12624efc08a9cb9810327be1b9aa568b17adaab38286756')
+
+build() {
+    cd "aiusage_tracker-${pkgver}"
+    python -m build --wheel --no-isolation
+}
+
+package() {
+    cd "aiusage_tracker-${pkgver}"
+    python -m installer --destdir="$pkgdir" dist/*.whl
+}

@@ -1,0 +1,17 @@
+pkgbase = python-pystray
+	pkgdesc = Cross-platform system tray icon library
+	pkgver = 0.19.5
+	pkgrel = 1
+	url = https://github.com/moses-palmer/pystray
+	arch = any
+	license = LGPL3
+	makedepends = python-installer
+	makedepends = python-wheel
+	depends = python
+	depends = python-pillow
+	depends = python-six
+	depends = python-xlib
+	source = https://files.pythonhosted.org/packages/5c/64/927a4b9024196a4799eba0180e0ca31568426f258a4a5c90f87a97f51d28/pystray-0.19.5-py2.py3-none-any.whl
+	sha256sums = a0c2229d02cf87207297c22d86ffc57c86c227517b038c0d3c59df79295ac617
+
+pkgname = python-pystray

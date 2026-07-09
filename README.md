@@ -55,7 +55,12 @@ cd aiusage
 pip install -e .
 ```
 
-**Arch Linux:** a `packaging/PKGBUILD` is included in this repo (not yet published to the AUR) — `makepkg -si` from the `packaging/` directory.
+**Arch Linux:** PKGBUILDs are included in `packaging/aur/` (not yet published to the AUR — needs `python-pystray` first, since pystray has no AUR package of its own). Build `python-pystray` before `aiusage-tracker`:
+
+```bash
+cd packaging/aur/python-pystray && makepkg -si
+cd ../aiusage-tracker && makepkg -si
+```
 
 All methods install the same `aiusage` command.
 
