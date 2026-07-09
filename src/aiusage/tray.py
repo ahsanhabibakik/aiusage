@@ -53,7 +53,7 @@ def run_tray():
     icon = pystray.Icon(
         "aiusage",
         _make_icon(pct),
-        f"aiusage — Claude session {pct if pct is not None else '?'}%",
+        f"aiusage - Claude session {pct if pct is not None else '?'}%",
         menu=pystray.Menu(
             pystray.MenuItem("Open dashboard", _open_dashboard),
             pystray.MenuItem("Quit", _quit),
@@ -65,7 +65,7 @@ def run_tray():
             time.sleep(REFRESH_SECONDS)
             pct = _session_percent()
             icon.icon = _make_icon(pct)
-            icon.title = f"aiusage — Claude session {pct if pct is not None else '?'}%"
+            icon.title = f"aiusage - Claude session {pct if pct is not None else '?'}%"
 
     threading.Thread(target=_loop, daemon=True).start()
     icon.run()
