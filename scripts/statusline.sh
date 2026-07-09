@@ -9,7 +9,10 @@
 set -o pipefail
 
 resp=$(curl -s -m 1 http://127.0.0.1:8737/v1/usage/claude 2>/dev/null)
-[ -z "$resp" ] && exit 0
+if [ -z "$resp" ]; then
+    printf '\033[2mClaude usage: aiusage not running (aiusage tray)\033[0m\n'
+    exit 0
+fi
 
 python3 -c "
 import json, sys
@@ -37,7 +40,7 @@ DIM = '\033[2m'
 def bar(pct, hues):
     filled = round(min(pct, 100) / 100 * BAR_WIDTH)
     c = fg(color(pct, hues))
-    return f\"{c}{'#' * filled}{DIM}{'.' * (BAR_WIDTH - filled)}{RESET}\"
+    return f\"{c}{'█' * filled}{DIM}{'░' * (BAR_WIDTH - filled)}{RESET}\"
 
 def metric(label, pct, hues):
     c = fg(color(pct, hues))
@@ -62,8 +65,10 @@ try:
 
     if parts:
         print(f'{DIM}Claude{RESET} ' + f'{DIM}|{RESET} '.join(parts))
+    else:
+        print(f'{DIM}Claude usage: no data yet{RESET}')
 except Exception:
-    pass
+    print(f'\033[2mClaude usage: error reading data\033[0m')
 " "$resp" 2>/dev/null
 
 exit 0
