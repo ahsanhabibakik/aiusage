@@ -102,7 +102,11 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def run_server(port: int = DEFAULT_PORT):
-    server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
+    try:
+        server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
+    except OSError:
+        print(f"aiusage: port {port} already in use — another aiusage instance is probably already serving it. Skipping.")
+        return
     print(f"aiusage: serving http://127.0.0.1:{port}  (Ctrl+C to stop)")
     try:
         server.serve_forever()
