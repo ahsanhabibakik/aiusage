@@ -1,6 +1,6 @@
 pkgbase = aiusage-tracker
 	pkgdesc = Cross-platform menu bar usage tracker for Claude Code, Codex and other AI coding subscriptions
-	pkgver = 0.1.0
+	pkgver = 0.2.0
 	pkgrel = 1
 	url = https://github.com/ahsanhabibakik/aiusage
 	arch = any
@@ -16,7 +16,7 @@ pkgbase = aiusage-tracker
 	depends = python-pystray
 	optdepends = libappindicator: tray icon support in modern desktop panels
 	provides = aiusage
-	source = https://github.com/ahsanhabibakik/aiusage/releases/download/v0.1.0/aiusage_tracker-0.1.0.tar.gz
-	sha256sums = 3820c4a8f68c7a16e12624efc08a9cb9810327be1b9aa568b17adaab38286756
+	source = https://github.com/ahsanhabibakik/aiusage/releases/download/v0.2.0/aiusage_tracker-0.2.0.tar.gz
+	sha256sums = 5dbf06410667c808832ec3178a471749373d0806b3a44e27d10eccd1fa46a1ab
 
 pkgname = aiusage-tracker

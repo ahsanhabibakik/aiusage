@@ -3,8 +3,8 @@ class AiusageTracker < Formula
 
   desc "Cross-platform menu bar usage tracker for Claude Code, Codex and other AI coding subscriptions"
   homepage "https://github.com/ahsanhabibakik/aiusage"
-  url "https://github.com/ahsanhabibakik/aiusage/releases/download/v0.1.0/aiusage_tracker-0.1.0.tar.gz"
-  sha256 "3820c4a8f68c7a16e12624efc08a9cb9810327be1b9aa568b17adaab38286756"
+  url "https://github.com/ahsanhabibakik/aiusage/releases/download/v0.2.0/aiusage_tracker-0.2.0.tar.gz"
+  sha256 "5dbf06410667c808832ec3178a471749373d0806b3a44e27d10eccd1fa46a1ab"
   license "MIT"
 
   depends_on "python@3.12"
