@@ -63,8 +63,11 @@ def cmd_update(args):
         source = "PyPI"
     except subprocess.CalledProcessError:
         print("aiusage: PyPI upgrade failed, trying GitHub source...")
+        # --force-reinstall: the git source's version string doesn't bump on
+        # every commit, so a plain --upgrade silently no-ops here (pip sees
+        # "already satisfied" and skips it) even when main has moved on.
         subprocess.check_call([
-            sys.executable, "-m", "pip", "install", "--quiet", "--upgrade",
+            sys.executable, "-m", "pip", "install", "--quiet", "--upgrade", "--force-reinstall", "--no-deps",
             "git+https://github.com/ahsanhabibakik/aiusage.git",
         ])
         source = "GitHub source"
