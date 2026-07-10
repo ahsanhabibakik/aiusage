@@ -51,7 +51,7 @@ jobs:
           pyinstaller --onefile --name aiusage
           --collect-submodules aiusage
           --hidden-import ${{ matrix.tray_backend }}
-          src/aiusage/__main__.py
+          packaging/pyinstaller_entry.py
         shell: bash
 
       - name: Smoke test
