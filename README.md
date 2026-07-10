@@ -27,13 +27,23 @@ $ aiusage status
 
 ## Install
 
-Requires Python 3.9+.
+**One command per platform — no Python required** (with Python 3.9+ it installs a lightweight venv; without, it downloads a self-contained binary):
 
-**One-line installer** (Linux/macOS — creates an isolated venv, no system Python pollution):
+macOS / Linux / WSL:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/ahsanhabibakik/aiusage/main/scripts/install.sh | bash
 ```
+
+Windows (PowerShell):
+
+```powershell
+irm https://raw.githubusercontent.com/ahsanhabibakik/aiusage/main/scripts/install.ps1 | iex
+```
+
+Both wire up everything automatically: `aiusage` command, Claude Code status bar, login autostart, and launch the tray immediately. Safe to re-run any time.
+
+**Standalone binaries** (no Python, no install script): grab `aiusage-linux-x86_64`, `aiusage-macos-arm64`, `aiusage-macos-x86_64`, or `aiusage-windows-x86_64.exe` from the [latest release](https://github.com/ahsanhabibakik/aiusage/releases/latest). Note: on Linux the binary's tray icon can't use the system AppIndicator libs — prefer the installer with Python there; `serve` + the dashboard work fully either way.
 
 **pip:**
 

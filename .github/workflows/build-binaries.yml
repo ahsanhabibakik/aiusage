@@ -1,0 +1,76 @@
+name: Build standalone binaries
+
+# Builds self-contained executables (no Python needed on the user's machine)
+# for Linux, macOS (arm64 + x86_64 via universal runners), and Windows.
+# Runs on every v* tag (attaches binaries to that release) and manually via
+# workflow_dispatch (uploads artifacts only, for testing before a release).
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04          # oldest LTS runner = binary runs on more distros
+            target: linux-x86_64
+            binary: aiusage
+            tray_backend: pystray._xorg
+          - os: macos-14              # Apple Silicon
+            target: macos-arm64
+            binary: aiusage
+            tray_backend: pystray._darwin
+          - os: macos-13              # Intel
+            target: macos-x86_64
+            binary: aiusage
+            tray_backend: pystray._darwin
+          - os: windows-latest
+            target: windows-x86_64
+            binary: aiusage.exe
+            tray_backend: pystray._win32
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install build deps
+        run: pip install pyinstaller .
+
+      - name: Build binary
+        run: >
+          pyinstaller --onefile --name aiusage
+          --collect-submodules aiusage
+          --hidden-import ${{ matrix.tray_backend }}
+          src/aiusage/__main__.py
+        shell: bash
+
+      - name: Smoke test
+        run: ./dist/${{ matrix.binary }} --help
+        shell: bash
+
+      - name: Rename for release
+        run: mv dist/${{ matrix.binary }} dist/aiusage-${{ matrix.target }}${{ matrix.target == 'windows-x86_64' && '.exe' || '' }}
+        shell: bash
+
+      - name: Upload artifact (manual runs)
+        uses: actions/upload-artifact@v4
+        with:
+          name: aiusage-${{ matrix.target }}
+          path: dist/aiusage-${{ matrix.target }}*
+
+      - name: Attach to release (tag builds)
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${GITHUB_REF_NAME}" dist/aiusage-${{ matrix.target }}* --clobber
+        shell: bash
