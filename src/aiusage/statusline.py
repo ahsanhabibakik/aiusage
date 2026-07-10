@@ -24,12 +24,12 @@ RESET = "\033[0m"
 DIM = "\033[2m"
 
 
-def _color(pct, hues):
+def _color(pct, hues, verdict=None):
     if pct is None:
         return (150, 150, 150)
-    if pct >= 90:
+    if verdict == "over" or pct >= 90:
         return hues[2]
-    if pct >= 70:
+    if verdict == "tight" or pct >= 70:
         return hues[1]
     return hues[0]
 
@@ -39,9 +39,9 @@ def _fg(rgb):
     return f"\033[38;2;{r};{g};{b}m"
 
 
-def _bar(pct, hues):
+def _bar(pct, hues, verdict=None):
     filled = round(min(pct, 100) / 100 * BAR_WIDTH)
-    c = _fg(_color(pct, hues))
+    c = _fg(_color(pct, hues, verdict))
     return f"{c}{'█' * filled}{DIM}{'░' * (BAR_WIDTH - filled)}{RESET}"
 
 
@@ -65,11 +65,12 @@ def _duration(resets_at):
     return f"{days}d {hrs}h"
 
 
-def _metric(label, pct, hues, resets_at):
-    c = _fg(_color(pct, hues))
+def _metric(label, pct, hues, resets_at, verdict=None):
+    c = _fg(_color(pct, hues, verdict))
     d = _duration(resets_at)
+    flame = " ⚠" if verdict == "over" else ""
     reset_text = f"{DIM} ({d}){RESET}" if d else ""
-    return f"{c}{label} {_bar(pct, hues)} {round(pct)}%{RESET}{reset_text}"
+    return f"{c}{label} {_bar(pct, hues, verdict)} {round(pct)}%{flame}{RESET}{reset_text}"
 
 
 def _fetch(port):
@@ -92,11 +93,13 @@ def render(port=DEFAULT_PORT):
 
         s = lines.get("Session")
         if s and s.get("type") == "progress":
-            parts.append(_metric("5h", s.get("used", 0), SESSION_HUES, s.get("resets_at")))
+            parts.append(_metric("5h", s.get("used", 0), SESSION_HUES, s.get("resets_at"),
+                                 (s.get("pace") or {}).get("verdict")))
 
         w = lines.get("Weekly")
         if w and w.get("type") == "progress":
-            parts.append(_metric("7d", w.get("used", 0), WEEKLY_HUES, w.get("resets_at")))
+            parts.append(_metric("7d", w.get("used", 0), WEEKLY_HUES, w.get("resets_at"),
+                                 (w.get("pace") or {}).get("verdict")))
 
         today = lines.get("Today")
         if today and today.get("type") == "text" and today.get("value") and today["value"] != "No data":

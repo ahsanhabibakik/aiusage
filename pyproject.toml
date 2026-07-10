@@ -1,6 +1,6 @@
 [project]
 name = "aiusage-tracker"
-version = "0.1.0"
+version = "0.2.0"
 description = "Cross-platform menu bar usage tracker for Claude Code, Codex and other AI coding subscriptions (Linux, macOS, Windows)"
 readme = "README.md"
 requires-python = ">=3.9"

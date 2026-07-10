@@ -5,7 +5,7 @@ from typing import Optional, Any
 
 @dataclass
 class MetricLine:
-    type: str  # "progress" | "text" | "badge"
+    type: str  # "progress" | "text" | "badge" | "barChart"
     label: str
     used: Optional[float] = None
     limit: Optional[float] = None
@@ -15,6 +15,14 @@ class MetricLine:
     text: Optional[str] = None
     color: Optional[str] = None
     subtitle: Optional[str] = None
+    # Burn-rate pacing (progress lines): how the window is projected to end.
+    period_duration_ms: Optional[int] = None
+    pace: Optional[dict] = None  # {"projected_used_pct", "verdict": "ok"|"tight"|"over"}
+    # barChart lines: one {label, value, valueLabel} per day, oldest first.
+    points: Optional[list] = None
+    note: Optional[str] = None
+    # text spend lines: optional per-model breakdown [{model, cost, tokens}]
+    models: Optional[list] = None
 
     def to_dict(self) -> dict:
         d = asdict(self)

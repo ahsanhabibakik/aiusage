@@ -25,12 +25,15 @@ SESSION_COLORS = [(90, 140, 255), (255, 180, 60), (255, 90, 90)]   # blue -> amb
 WEEKLY_COLORS = [(150, 100, 230), (255, 140, 40), (230, 60, 90)]   # purple -> orange -> crimson
 
 
-def _severity_color(percent, palette):
+def _severity_color(percent, palette, pace_verdict=None):
+    """Level-based severity, upgraded by the burn-rate verdict: a half-full
+    window burning too fast is already red; a nearly-drained one coasting to
+    the reset keeps its calmer color unless the level itself is critical."""
     if percent is None:
         return (120, 120, 130)
-    if percent >= 90:
+    if pace_verdict == "over" or percent >= 90:
         return palette[2]
-    if percent >= 70:
+    if pace_verdict == "tight" or percent >= 70:
         return palette[1]
     return palette[0]
 
@@ -44,9 +47,9 @@ def _font(size):
         return ImageFont.load_default()
 
 
-def _make_badge(percent, shape="circle"):
+def _make_badge(percent, shape="circle", pace_verdict=None):
     palette = SESSION_COLORS if shape == "circle" else WEEKLY_COLORS
-    color = _severity_color(percent, palette) + (255,)
+    color = _severity_color(percent, palette, pace_verdict) + (255,)
     size = 64
     img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
@@ -88,13 +91,17 @@ def _format_duration(resets_at):
 
 
 def _fetch_metrics():
-    """One live API call, both metrics -- never fetch the same snapshot twice."""
-    metrics = {"Session": (None, None), "Weekly": (None, None)}
+    """One live API call, both metrics -- never fetch the same snapshot twice.
+    Also runs the notification check on the same snapshot (no extra call)."""
+    metrics = {"Session": (None, None, None), "Weekly": (None, None, None)}
     try:
         snap = claude_provider.fetch_snapshot()
         for line in snap.lines:
             if line.type == "progress" and line.label in metrics:
-                metrics[line.label] = (round(line.used or 0), line.resets_at)
+                verdict = (line.pace or {}).get("verdict")
+                metrics[line.label] = (round(line.used or 0), line.resets_at, verdict)
+        from .notify import check_and_notify
+        check_and_notify(snap.lines)
     except Exception:
         pass
     return metrics
@@ -117,10 +124,10 @@ def run_tray():
     metrics = _fetch_metrics()
 
     def make(label, shape):
-        pct, resets_at = metrics[label]
+        pct, resets_at, verdict = metrics[label]
         icon = pystray.Icon(
             f"aiusage-{label.lower()}",
-            _make_badge(pct, shape),
+            _make_badge(pct, shape, verdict),
             _tooltip(label, pct, resets_at),
         )
         return icon
@@ -146,8 +153,8 @@ def run_tray():
             time.sleep(REFRESH_SECONDS)
             metrics = _fetch_metrics()
             for lbl, shape, icon in (("Session", "circle", session_icon), ("Weekly", "square", weekly_icon)):
-                pct, resets_at = metrics[lbl]
-                icon.icon = _make_badge(pct, shape)
+                pct, resets_at, verdict = metrics[lbl]
+                icon.icon = _make_badge(pct, shape, verdict)
                 icon.title = _tooltip(lbl, pct, resets_at)
 
     threading.Thread(target=_loop, daemon=True).start()

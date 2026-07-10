@@ -91,6 +91,7 @@ def _local_spend_tiles() -> dict:
     window_start = today_key - timedelta(days=29)
 
     per_day = {}  # date -> [cost, tokens]
+    per_day_models = {}  # date -> {model: [cost, tokens]}
     for ts, model, usage in _iter_assistant_messages():
         try:
             dt = datetime.fromisoformat(ts.replace("Z", "+00:00")).astimezone()
@@ -107,6 +108,9 @@ def _local_spend_tiles() -> dict:
         entry = per_day.setdefault(day, [0.0, 0])
         entry[0] += cost
         entry[1] += tokens
+        m = per_day_models.setdefault(day, {}).setdefault(model or "unknown", [0.0, 0])
+        m[0] += cost
+        m[1] += tokens
 
     def fmt(day):
         if day not in per_day:
@@ -114,14 +118,37 @@ def _local_spend_tiles() -> dict:
         cost, tokens = per_day[day]
         return _fmt_cost_tokens(cost, tokens)
 
+    def model_breakdown(day):
+        models = per_day_models.get(day)
+        if not models:
+            return None
+        ranked = sorted(models.items(), key=lambda kv: kv[1][0], reverse=True)
+        return [
+            {"model": name, "cost": round(cost, 2), "tokens": tokens}
+            for name, (cost, tokens) in ranked
+        ]
+
     thirty_cost = sum(v[0] for v in per_day.values())
     thirty_tokens = sum(v[1] for v in per_day.values())
     thirty = _fmt_cost_tokens(thirty_cost, thirty_tokens) if per_day else None
+
+    # 30-day trend, oldest first, one point per day that has usage.
+    trend = [
+        {
+            "label": day.strftime("%b %-d") if os.name != "nt" else day.strftime("%b %d").replace(" 0", " "),
+            "value": per_day[day][1],
+            "valueLabel": _fmt_cost_tokens(per_day[day][0], per_day[day][1]),
+        }
+        for day in sorted(per_day)
+    ]
 
     return {
         "today": fmt(today_key),
         "yesterday": fmt(yesterday_key),
         "last30": thirty,
+        "today_models": model_breakdown(today_key),
+        "yesterday_models": model_breakdown(yesterday_key),
+        "trend": trend or None,
     }
 
 
@@ -133,6 +160,48 @@ def _fmt_cost_tokens(cost: float, tokens: int) -> str:
     else:
         tok_str = f"{tokens} tokens"
     return f"${cost:.2f} · {tok_str}"
+
+
+SESSION_WINDOW_MS = 5 * 60 * 60 * 1000
+WEEKLY_WINDOW_MS = 7 * 24 * 60 * 60 * 1000
+
+
+def _compute_pace(used_pct, resets_at, window_ms):
+    """Burn-rate projection: if you keep burning at the current rate, where
+    does this window land at reset? verdict: ok (>=10% spare), tight (<10%
+    spare), over (projected past the limit). Skips windows too young to
+    project (<5% elapsed)."""
+    if used_pct is None or not resets_at:
+        return None
+    try:
+        reset_dt = datetime.fromisoformat(resets_at.replace("Z", "+00:00"))
+    except (ValueError, AttributeError):
+        return None
+    remaining_ms = (reset_dt - datetime.now(timezone.utc)).total_seconds() * 1000
+    elapsed_ms = window_ms - remaining_ms
+    if elapsed_ms < window_ms * 0.05 or elapsed_ms <= 0:
+        return None
+    projected = used_pct / elapsed_ms * window_ms
+    if projected > 100:
+        verdict = "over"
+    elif projected > 90:
+        verdict = "tight"
+    else:
+        verdict = "ok"
+    return {"projected_used_pct": round(min(projected, 999)), "verdict": verdict}
+
+
+def _plan_name():
+    """Best-effort plan label from the same credentials file the token comes
+    from, e.g. rateLimitTier 'default_max_5x' -> 'Max 5x'."""
+    try:
+        data = json.loads(claude_credentials_path().read_text())
+        oauth = data.get("claudeAiOauth", {})
+        tier = oauth.get("rateLimitTier") or oauth.get("subscriptionType") or ""
+        tier = tier.replace("default_", "").replace("_", " ").strip()
+        return tier.title().replace("X", "x") if tier else None
+    except Exception:
+        return None
 
 
 _last_good_live = None
@@ -153,31 +222,43 @@ def fetch_snapshot() -> ProviderSnapshot:
         stale = True
 
     lines = []
-    plan = None
+    plan = _plan_name()
 
     if live:
         five_hour = live.get("five_hour") or {}
         seven_day = live.get("seven_day") or {}
         if five_hour:
+            used = five_hour.get("utilization", 0.0)
+            resets = five_hour.get("resets_at")
             lines.append(MetricLine(
                 type="progress", label="Session",
-                used=five_hour.get("utilization", 0.0), limit=100.0,
-                format={"kind": "percent"}, resets_at=five_hour.get("resets_at"),
+                used=used, limit=100.0,
+                format={"kind": "percent"}, resets_at=resets,
+                period_duration_ms=SESSION_WINDOW_MS,
+                pace=_compute_pace(used, resets, SESSION_WINDOW_MS),
             ))
         if seven_day:
+            used = seven_day.get("utilization", 0.0)
+            resets = seven_day.get("resets_at")
             lines.append(MetricLine(
                 type="progress", label="Weekly",
-                used=seven_day.get("utilization", 0.0), limit=100.0,
-                format={"kind": "percent"}, resets_at=seven_day.get("resets_at"),
+                used=used, limit=100.0,
+                format={"kind": "percent"}, resets_at=resets,
+                period_duration_ms=WEEKLY_WINDOW_MS,
+                pace=_compute_pace(used, resets, WEEKLY_WINDOW_MS),
             ))
         for limit in live.get("limits") or []:
             scope = limit.get("scope") or {}
             model_name = (scope.get("model") or {}).get("display_name")
             if model_name and limit.get("kind") == "weekly_scoped":
+                used = limit.get("percent", 0.0)
+                resets = limit.get("resets_at")
                 lines.append(MetricLine(
                     type="progress", label=f"Weekly ({model_name})",
-                    used=limit.get("percent", 0.0), limit=100.0,
-                    format={"kind": "percent"}, resets_at=limit.get("resets_at"),
+                    used=used, limit=100.0,
+                    format={"kind": "percent"}, resets_at=resets,
+                    period_duration_ms=WEEKLY_WINDOW_MS,
+                    pace=_compute_pace(used, resets, WEEKLY_WINDOW_MS),
                 ))
         extra = live.get("extra_usage") or {}
         if extra.get("is_enabled"):
@@ -206,9 +287,22 @@ def fetch_snapshot() -> ProviderSnapshot:
         lines.append(MetricLine(type="text", label="Session", value=messages.get(error, "Unavailable")))
 
     tiles = _local_spend_tiles()
-    for label, key in (("Today", "today"), ("Yesterday", "yesterday"), ("Last 30 Days", "last30")):
+    for label, key, models_key in (
+        ("Today", "today", "today_models"),
+        ("Yesterday", "yesterday", "yesterday_models"),
+        ("Last 30 Days", "last30", None),
+    ):
         val = tiles.get(key)
-        lines.append(MetricLine(type="text", label=label, value=val or "No data"))
+        lines.append(MetricLine(
+            type="text", label=label, value=val or "No data",
+            models=tiles.get(models_key) if models_key else None,
+        ))
+    if tiles.get("trend"):
+        lines.append(MetricLine(
+            type="barChart", label="Usage Trend",
+            points=tiles["trend"],
+            note="Estimated from local Claude Code logs at API rates.",
+        ))
 
     return ProviderSnapshot(
         provider_id=PROVIDER_ID,
