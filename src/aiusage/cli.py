@@ -14,18 +14,23 @@ from .server import run_server
 PYPI_PROJECT = "aiusage-tracker"
 
 
+def _pypi_latest(timeout=1.5):
+    """Latest version on PyPI, or None if unreachable / not published."""
+    try:
+        req = urllib.request.Request(f"https://pypi.org/pypi/{PYPI_PROJECT}/json")
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            return json.loads(resp.read().decode())["info"]["version"]
+    except Exception:
+        return None
+
+
 def _notify_if_outdated():
     """Best-effort, non-blocking. Never raises, never delays startup by more
     than ~1.5s -- this only runs once at command startup, not on the
     statusline render path."""
-    try:
-        req = urllib.request.Request(f"https://pypi.org/pypi/{PYPI_PROJECT}/json")
-        with urllib.request.urlopen(req, timeout=1.5) as resp:
-            latest = json.loads(resp.read().decode())["info"]["version"]
-        if latest != __version__:
-            print(f"aiusage: v{latest} available (you have v{__version__}) -- run `aiusage update`", file=sys.stderr)
-    except Exception:
-        pass
+    latest = _pypi_latest()
+    if latest and latest != __version__:
+        print(f"aiusage: v{latest} available (you have v{__version__}) -- run `aiusage update`", file=sys.stderr)
 
 
 def cmd_status(args):
@@ -58,14 +63,18 @@ def cmd_setup(args):
 
 def cmd_update(args):
     print(f"aiusage: currently v{__version__}, checking for updates...")
-    try:
+    # Ask PyPI's index directly instead of trusting `pip install --upgrade`'s
+    # exit code: when the package isn't published (or PyPI has nothing newer),
+    # pip prints "already satisfied" and exits 0 without doing anything --
+    # which read as a successful update. Only take the PyPI path when the
+    # index actually has a newer version; otherwise install from GitHub main.
+    latest = _pypi_latest(timeout=5)
+    if latest and latest != __version__:
         subprocess.check_call([sys.executable, "-m", "pip", "install", "--quiet", "--upgrade", PYPI_PROJECT])
         source = "PyPI"
-    except subprocess.CalledProcessError:
-        print("aiusage: PyPI upgrade failed, trying GitHub source...")
+    else:
         # --force-reinstall: the git source's version string doesn't bump on
-        # every commit, so a plain --upgrade silently no-ops here (pip sees
-        # "already satisfied" and skips it) even when main has moved on.
+        # every commit, so a plain --upgrade silently no-ops here too.
         subprocess.check_call([
             sys.executable, "-m", "pip", "install", "--quiet", "--upgrade", "--force-reinstall", "--no-deps",
             "git+https://github.com/ahsanhabibakik/aiusage.git",
