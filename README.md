@@ -94,9 +94,33 @@ If your desktop has no tray support at all, use `aiusage serve` + the local dash
 aiusage status          # print current usage as JSON and exit
 aiusage serve            # run the local HTTP API + web dashboard (no tray icon)
 aiusage tray             # run the system tray icon + local HTTP API (default experience)
+aiusage setup            # wire up Claude Code's statusLine + login autostart
+aiusage update           # upgrade to the latest version
 ```
 
 Open `http://127.0.0.1:8737` in a browser for a small live dashboard while `serve` or `tray` is running.
+
+## Claude Code status bar
+
+`aiusage setup` wires everything up automatically (the installer already runs this for you): adds a `statusLine` to `~/.claude/settings.json` showing live usage right in Claude Code's own status bar, plus login autostart for the tray. It's safe to re-run any time — it never overwrites a *different* statusLine you already have unless you pass `--force`.
+
+```bash
+aiusage setup            # wire up statusLine + autostart
+aiusage setup --force    # overwrite an existing different statusLine
+aiusage statusline        # what settings.json actually runs, one line of output
+```
+
+**Important:** to reload after changing `settings.json`, open a **new** Claude Code session — don't run `/statusline`. That command is Claude Code's own status-bar *config wizard*; running it replaces whatever's there (including aiusage's) with its own sample. If that happens, just run `aiusage setup` again.
+
+## Keeping it updated
+
+```bash
+aiusage update
+```
+
+Tries PyPI first, falls back to the GitHub source. There's no silent background auto-update — a tool that quietly rewrites itself (or your config) without being asked is a real supply-chain risk, not a feature. You'll also get a one-line "update available" notice when running `status`/`serve`/`tray` if a newer version exists.
+
+If you installed via Homebrew or the AUR, use `brew upgrade` / your AUR helper's update flow instead — same idea, just through that package manager.
 
 ## Local HTTP API
 
@@ -134,7 +158,7 @@ If neither is present, the Session/Weekly lines report "Not logged in" — run `
 ## Privacy
 
 - Local spend tiles are computed **entirely on your machine** from your own Claude Code session logs — no external calls.
-- The only network call is the same usage-check request Claude Code's own client makes to `api.anthropic.com`.
+- `status`/`serve`/`tray` make one usage-check request to `api.anthropic.com` (the same one Claude Code's own client makes) and one lightweight, best-effort check to `pypi.org` for a newer version — never on the statusline render path, so it can't slow down your status bar.
 - The local HTTP API only ever serves usage numbers, never tokens or credentials, and only listens on loopback.
 
 ## Roadmap
