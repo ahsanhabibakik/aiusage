@@ -4,6 +4,18 @@
 
 Ever burned through your weekly Claude limit without knowing it was close? `aiusage` reads the same login you already have from Claude Code and shows your session and weekly usage percentages, plus a local spend estimate (today / yesterday / last 30 days) computed entirely from logs already on your machine. No dashboard login, no extra account, no telemetry.
 
+**In Claude Code's own status bar** — live bars, percentages, reset countdowns, and today's spend:
+
+![Claude Code status bar showing live session and weekly usage](assets/statusline.png)
+
+**In your system tray** — session (circle) and weekly (square) badges with the live percentage, color-shifting as you approach limits:
+
+![System tray icons showing usage percentages](assets/tray.png)
+
+**In a local dashboard** (`http://127.0.0.1:8737`) — pacing projections, per-model spend breakdown, 30-day trend:
+
+<p align="center"><img src="assets/dashboard.png" alt="aiusage dashboard with usage bars, spend and 30-day trend" width="480"></p>
+
 ```
 $ aiusage status
 {
