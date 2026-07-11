@@ -55,7 +55,7 @@ irm https://raw.githubusercontent.com/ahsanhabibakik/aiusage/main/scripts/instal
 
 Both wire up everything automatically: `aiusage` command, Claude Code status bar, login autostart, and launch the tray immediately. Safe to re-run any time.
 
-**Standalone binaries** (no Python, no install script): grab `aiusage-linux-x86_64`, `aiusage-macos-universal2` (Intel + Apple Silicon), or `aiusage-windows-x86_64.exe` from the [latest release](https://github.com/ahsanhabibakik/aiusage/releases/latest). Note: on Linux the binary's tray icon can't use the system AppIndicator libs — prefer the installer with Python there; `serve` + the dashboard work fully either way.
+**Standalone binaries** (no Python, no install script): grab `aiusage-linux-x86_64`, `aiusage-macos-arm64` (Apple Silicon), or `aiusage-windows-x86_64.exe` from the [latest release](https://github.com/ahsanhabibakik/aiusage/releases/latest). Note: on Linux the binary's tray icon can't use the system AppIndicator libs — prefer the installer with Python there; `serve` + the dashboard work fully either way.
 
 **pip:**
 

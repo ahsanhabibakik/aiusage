@@ -23,7 +23,9 @@ have_python() {
 binary_target() {
     case "$(uname -s)" in
         Linux)  echo "linux-x86_64" ;;
-        Darwin) echo "macos-universal2" ;;   # one binary covers Intel + Apple Silicon
+        # Apple Silicon only -- no Intel macOS binary (GitHub retired the
+        # Intel runners). Intel Macs use the Python path below instead.
+        Darwin) [ "$(uname -m)" = "arm64" ] && echo "macos-arm64" || echo "" ;;
         *)      echo "" ;;
     esac
 }

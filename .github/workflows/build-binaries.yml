@@ -23,14 +23,14 @@ jobs:
             target: linux-x86_64
             binary: aiusage
             tray_backend: pystray._xorg
-          # One universal2 binary covers Apple Silicon AND Intel Macs --
-          # GitHub retired the Intel (macos-13) runners, so a separate
-          # x86_64 build isn't schedulable anymore.
+          # Apple Silicon only: GitHub retired the Intel (macos-13) runners,
+          # and setup-python's toolcache Python is arm64-only so a
+          # --target-arch universal2 build can't link. Intel Mac users take
+          # the Python/Homebrew install path instead.
           - os: macos-14
-            target: macos-universal2
+            target: macos-arm64
             binary: aiusage
             tray_backend: pystray._darwin
-            pyinstaller_args: --target-arch universal2
           - os: windows-latest
             target: windows-x86_64
             binary: aiusage.exe
