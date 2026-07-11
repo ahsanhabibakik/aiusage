@@ -21,11 +21,9 @@ have_python() {
 }
 
 binary_target() {
-    local os arch
-    os=$(uname -s); arch=$(uname -m)
-    case "$os" in
+    case "$(uname -s)" in
         Linux)  echo "linux-x86_64" ;;
-        Darwin) [ "$arch" = "arm64" ] && echo "macos-arm64" || echo "macos-x86_64" ;;
+        Darwin) echo "macos-universal2" ;;   # one binary covers Intel + Apple Silicon
         *)      echo "" ;;
     esac
 }
