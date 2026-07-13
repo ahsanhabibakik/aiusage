@@ -57,7 +57,7 @@ The native statusline has one structural limitation that no configuration can fi
 
 ## Why a background server at all?
 
-This is the part the LinkedIn take is really asking about. The answer: **shared cache**.
+This is the part the question is really about. The answer: **shared cache**.
 
 The tray icons, notifications, dashboard, statusline, and API all need the same numbers. If each polled Anthropic/OpenAI independently — or on every statusline render, which happens constantly — you'd hammer endpoints that visibly throttle (we hit 429s during development doing exactly this). One tiny loopback process polls each provider **once per 5 minutes** (the same interval the reference macOS app, OpenUsage, settled on) and every surface reads from that cache. The statusline render path never touches the network at all — it can't slow your terminal down or contribute to rate limits, no matter how often it redraws.
 
