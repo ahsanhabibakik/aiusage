@@ -32,6 +32,7 @@ $ aiusage status
 ## Features
 
 - **Live Claude usage** — session (5h) and weekly (7d) limits, read via the OAuth login Claude Code already stores locally.
+- **Codex too** — if the Codex CLI is installed, its weekly limit, plan, rate-limit reset credits, and local spend show up automatically (auto-detected, zero config).
 - **Local spend estimate** — Today / Yesterday / Last 30 Days, computed by scanning your own `~/.claude/projects` session logs. Nothing is uploaded anywhere.
 - **System tray icon** — a small ring showing session usage %, color-coded (blue → amber → red), on Linux, macOS, and Windows.
 - **Local JSON API** — `GET http://127.0.0.1:8737/v1/usage`, so other local tools/scripts can read your usage numbers. Loopback-only.
@@ -185,7 +186,6 @@ If neither is present, the Session/Weekly lines report "Not logged in" — run `
 
 ## Roadmap
 
-- Codex / ChatGPT subscription usage (local session rollout parsing is the hard part — PRs welcome)
 - Cursor, OpenRouter, Z.ai providers
 - Packaged binaries (no Python required) for macOS/Windows
 

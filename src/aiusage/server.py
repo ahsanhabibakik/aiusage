@@ -6,11 +6,15 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from .config import DEFAULT_PORT
 from .providers import claude as claude_provider
+from .providers import codex as codex_provider
 from .dashboard import DASHBOARD_HTML
 
-PROVIDERS = {
-    "claude": claude_provider,
-}
+# Claude is always on (this tool exists for Claude Code users); other
+# providers register only when their CLI's local files are present, the same
+# local-detection approach OpenUsage uses -- nothing is probed remotely.
+PROVIDERS = {"claude": claude_provider}
+if codex_provider.available():
+    PROVIDERS["codex"] = codex_provider
 
 _cache_lock = threading.Lock()
 _cache = {}  # providerId -> snapshot dict

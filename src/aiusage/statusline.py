@@ -73,10 +73,30 @@ def _metric(label, pct, hues, resets_at, verdict=None):
     return f"{c}{label} {_bar(pct, hues, verdict)} {round(pct)}%{flame}{RESET}{reset_text}"
 
 
+CODEX_HUES = [(70, 200, 160), (255, 180, 60), (255, 110, 110)]
+
+
 def _fetch(port):
-    req = urllib.request.Request(f"http://127.0.0.1:{port}/v1/usage/claude")
+    req = urllib.request.Request(f"http://127.0.0.1:{port}/v1/usage")
     with urllib.request.urlopen(req, timeout=1) as resp:
         return json.loads(resp.read().decode())
+
+
+def _provider_parts(snapshot, session_hues, weekly_hues, include_today=True):
+    lines = {l.get("label"): l for l in snapshot.get("lines", [])}
+    parts = []
+    s = lines.get("Session")
+    if s and s.get("type") == "progress":
+        parts.append(_metric("5h", s.get("used", 0), session_hues, s.get("resets_at"),
+                             (s.get("pace") or {}).get("verdict")))
+    w = lines.get("Weekly")
+    if w and w.get("type") == "progress":
+        parts.append(_metric("7d", w.get("used", 0), weekly_hues, w.get("resets_at"),
+                             (w.get("pace") or {}).get("verdict")))
+    today = lines.get("Today")
+    if include_today and today and today.get("type") == "text" and today.get("value") and today["value"] != "No data":
+        parts.append(f"{DIM}today {today['value']}{RESET}")
+    return parts
 
 
 def render(port=DEFAULT_PORT):
@@ -88,25 +108,24 @@ def render(port=DEFAULT_PORT):
         return f"{DIM}Claude usage: error reading data{RESET}"
 
     try:
-        lines = {l.get("label"): l for l in data.get("lines", [])}
-        parts = []
+        by_id = {p.get("providerId"): p for p in data}
+        segments = []
 
-        s = lines.get("Session")
-        if s and s.get("type") == "progress":
-            parts.append(_metric("5h", s.get("used", 0), SESSION_HUES, s.get("resets_at"),
-                                 (s.get("pace") or {}).get("verdict")))
+        claude = by_id.get("claude")
+        if claude:
+            parts = _provider_parts(claude, SESSION_HUES, WEEKLY_HUES)
+            if parts:
+                segments.append(f"{DIM}Claude{RESET} " + f"{DIM}|{RESET} ".join(parts))
 
-        w = lines.get("Weekly")
-        if w and w.get("type") == "progress":
-            parts.append(_metric("7d", w.get("used", 0), WEEKLY_HUES, w.get("resets_at"),
-                                 (w.get("pace") or {}).get("verdict")))
+        codex = by_id.get("codex")
+        if codex:
+            # Compact: bars only, no spend -- keeps the line from overflowing.
+            parts = _provider_parts(codex, CODEX_HUES, CODEX_HUES, include_today=False)
+            if parts:
+                segments.append(f"{DIM}Codex{RESET} " + f"{DIM}|{RESET} ".join(parts))
 
-        today = lines.get("Today")
-        if today and today.get("type") == "text" and today.get("value") and today["value"] != "No data":
-            parts.append(f"{DIM}today {today['value']}{RESET}")
-
-        if parts:
-            return f"{DIM}Claude{RESET} " + f"{DIM}|{RESET} ".join(parts)
+        if segments:
+            return f"  {DIM}‖{RESET}  ".join(segments)
         return f"{DIM}Claude usage: no data yet{RESET}"
     except Exception:
         return f"{DIM}Claude usage: error reading data{RESET}"

@@ -62,29 +62,31 @@ def send_notification(title, body):
         pass
 
 
-def check_and_notify(snapshot_lines):
-    """Walk progress lines, fire any newly-crossed alerts. Called after each
-    tray refresh; cheap no-op when nothing has changed."""
+def check_and_notify(snapshot):
+    """Walk a snapshot dict's progress lines, fire any newly-crossed alerts.
+    Called after each tray refresh; cheap no-op when nothing has changed."""
     state = _load_state()
     changed = False
+    provider = snapshot.get("displayName") or snapshot.get("providerId", "")
 
-    for line in snapshot_lines:
-        if line.type != "progress" or line.used is None or not line.resets_at:
+    for line in snapshot.get("lines", []):
+        if line.get("type") != "progress" or line.get("used") is None or not line.get("resets_at"):
             continue
-        left = (line.limit or 100) - line.used
-        pace = line.pace or {}
-        period_key = f"{line.label}|{line.resets_at}"
+        name = f"{provider} {line.get('label')}".strip()
+        left = (line.get("limit") or 100) - line["used"]
+        pace = line.get("pace") or {}
+        period_key = f"{snapshot.get('providerId')}|{line.get('label')}|{line['resets_at']}"
 
         alerts = []
         if left <= 0:
-            alerts.append(("limit_reached", f"{line.label} limit reached",
-                           f"Your {line.label} window is fully used. Resets soon."))
+            alerts.append(("limit_reached", f"{name} limit reached",
+                           f"Your {name} window is fully used. Resets soon."))
         elif left < 10:
-            alerts.append(("almost_out", f"{line.label} almost out",
-                           f"Under {round(left)}% left in your {line.label} window."))
+            alerts.append(("almost_out", f"{name} almost out",
+                           f"Under {round(left)}% left in your {name} window."))
         if pace.get("verdict") == "over" and left > 0:
-            alerts.append(("will_run_out", f"{line.label} on pace to run out",
-                           f"At the current rate your {line.label} window runs out before it resets "
+            alerts.append(("will_run_out", f"{name} on pace to run out",
+                           f"At the current rate your {name} window runs out before it resets "
                            f"(projected {pace['projected_used_pct']}% used)."))
 
         for kind, title, body in alerts:
