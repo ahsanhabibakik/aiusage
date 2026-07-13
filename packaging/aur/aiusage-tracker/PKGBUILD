@@ -3,7 +3,7 @@
 # Depends on the companion python-pystray PKGBUILD in ../python-pystray --
 # pystray has no AUR package of its own.
 pkgname=aiusage-tracker
-pkgver=0.2.0
+pkgver=0.4.0
 pkgrel=1
 pkgdesc="Cross-platform menu bar usage tracker for Claude Code, Codex and other AI coding subscriptions"
 arch=('any')
@@ -14,7 +14,7 @@ makedepends=('python-build' 'python-installer' 'python-wheel' 'python-setuptools
 optdepends=('libappindicator: tray icon support in modern desktop panels')
 provides=('aiusage')
 source=("https://github.com/ahsanhabibakik/aiusage/releases/download/v${pkgver}/aiusage_tracker-${pkgver}.tar.gz")
-sha256sums=('5dbf06410667c808832ec3178a471749373d0806b3a44e27d10eccd1fa46a1ab')
+sha256sums=('2e62e81010e973cc03302998d45c16cae020180ced9c885e778621b7c532b2f9')
 
 build() {
     cd "aiusage_tracker-${pkgver}"
