@@ -29,6 +29,8 @@ $ aiusage status
 }
 ```
 
+> **"Can't you just use Claude Code's built-in statusline?"** — Yes, and for terminal-only display you should. [Here's the honest breakdown](docs/why.md) of who needs this tool, who doesn't, and what problem each feature solves.
+
 ## Features
 
 - **Live Claude usage** — session (5h) and weekly (7d) limits, read via the OAuth login Claude Code already stores locally.
