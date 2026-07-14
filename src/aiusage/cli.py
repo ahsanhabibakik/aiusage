@@ -45,6 +45,14 @@ def cmd_serve(args):
 
 
 def cmd_tray(args):
+    # Refuse to run twice: a second instance would add a duplicate set of
+    # tray icons. The local API port doubles as the single-instance lock.
+    try:
+        with urllib.request.urlopen(f"http://127.0.0.1:{args.port}/v1/usage", timeout=1):
+            print(f"aiusage: tray already running (port {args.port} is serving). Not starting a second one.")
+            return
+    except Exception:
+        pass
     _notify_if_outdated()
     threading.Thread(target=run_server, kwargs={"port": args.port}, daemon=True).start()
     from .tray import run_tray

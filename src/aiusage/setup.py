@@ -75,6 +75,18 @@ def write_autostart():
     if system == "Linux":
         path = _linux_autostart_path()
         path.parent.mkdir(parents=True, exist_ok=True)
+        # Remove any OTHER autostart entry that also launches `aiusage tray`
+        # (e.g. a hand-made one from before this command existed). Two
+        # entries = two tray processes = every icon shows up twice.
+        for other in path.parent.glob("*.desktop"):
+            if other.name == path.name:
+                continue
+            try:
+                if "aiusage tray" in other.read_text():
+                    other.unlink()
+                    print(f"autostart: removed duplicate entry {other.name}")
+            except OSError:
+                pass
         path.write_text(
             "[Desktop Entry]\n"
             "Type=Application\n"
